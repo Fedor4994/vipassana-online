@@ -60,14 +60,28 @@ bot.on("message", (msg) => {
 });
 
 bot.on("message", (msg) => {
+    // Проверяем: это сообщение в группе поддержки?
     if (msg.chat.id.toString() !== process.env.SUPPORT_CHAT_ID) return;
-    if (!msg.reply_to_message) return; // только если это reply
+    if (!msg.reply_to_message) return;
 
-    const originalMessageId = msg.reply_to_message.message_id;
-    const userId = replyMap.get(originalMessageId);
+    // Извлекаем настоящего автора вопроса
+    const fwd = msg.reply_to_message.forward_from
+        || msg.reply_to_message.forward_origin?.sender_user;
 
-    if (userId) {
-        bot.sendMessage(userId, "📩 Відповідь підтримки:\n" + msg.text);
-        bot.sendMessage(msg.chat.id, "✅ Відповідь відправлена користувачу.");
+    if (!fwd) {
+        bot.sendMessage(msg.chat.id, "⚠️ Не удалось определить пользователя для ответа.");
+        return;
     }
+
+    const userId = fwd.id;
+
+    // Отправляем ответ пользователю
+    bot.sendMessage(userId, "📩 Відповідь підтримки:\n" + msg.text)
+        .then(() => {
+            bot.sendMessage(msg.chat.id, "✅ Відповідь надіслана користувачу.");
+        })
+        .catch(err => {
+            bot.sendMessage(msg.chat.id, "⚠️ Не вдалося надіслати повідомлення користувачу.");
+            console.error(err);
+        });
 });
