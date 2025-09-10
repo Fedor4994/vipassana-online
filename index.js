@@ -12,6 +12,8 @@ bot.onText(/\/start/, (msg) => {
         "1️⃣ Ознайомитись з умовами — /rules\n" +
         "2️⃣ Задати питання підтримці — просто напишіть повідомлення."
     );
+
+    console.log(msg.chat);
 });
 
 // Рассылка условий
@@ -43,16 +45,28 @@ bot.on("message", (msg) => {
         "чи як тільки зʼявиться можливість."
     );
 
-    // Пересылаем сообщение в чат поддержки
+
+    // Пересылаем в чат поддержки
     if (process.env.SUPPORT_CHAT_ID) {
-        bot.forwardMessage(process.env.SUPPORT_CHAT_ID, chatId, msg.message_id);
-        bot.sendMessage(process.env.SUPPORT_CHAT_ID, `🆕 Повідомлення від @${msg.from.username || msg.from.first_name} (ID: ${chatId})`);
+        bot.forwardMessage(process.env.SUPPORT_CHAT_ID, chatId, msg.message_id)
+            .then((sentMessage) => {
+                // Запоминаем: ID пересланного → ID пользователя
+                replyMap.set(sentMessage.message_id, chatId);
+            });
     }
 });
 
-// Ответ из чата поддержки пользователю
-bot.onText(/\/reply (\d+) (.+)/, (msg, match) => {
-    const userId = match[1];
-    const replyText = match[2];
-    bot.sendMessage(userId, "📩 Відповідь підтримки:\n" + replyText);
+// Ловим ответы организаторов (reply)
+bot.on("message", (msg) => {
+    if (msg.chat.id.toString() !== process.env.SUPPORT_CHAT_ID) return;
+    if (!msg.reply_to_message) return; // только если ответ на сообщение
+
+    const originalMessageId = msg.reply_to_message.message_id;
+    const userId = replyMap.get(originalMessageId);
+
+    if (userId) {
+        bot.sendMessage(userId, "📩 Відповідь підтримки:\n" + msg.text);
+        // Можно ещё уведомить организатора, что сообщение ушло
+        bot.sendMessage(msg.chat.id, "✅ Відповідь надіслано користувачу.");
+    }
 });
