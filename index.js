@@ -63,8 +63,17 @@ bot.onText(/\/retreat/, (msg) => {
     }, 15000);
 });
 
-// Хендлер для повернення після реєстрації (спеціальне посилання)
-bot.onText(/\/start(?:\s+(retreat_registered|\?donation))?/, (msg, match) => {
+// Флаг для запобігання дублюванню /start повідомлень
+const recentStartUsers = new Set();
+
+bot.onText(/\/start(?:\s+(retreat_registered|donation))?/, (msg, match) => {
+    // Захист від дублювання: якщо вже обробляли /start для цього користувача за останні 2 секунди — ігноруємо
+    if (recentStartUsers.has(msg.chat.id)) {
+        return;
+    }
+    recentStartUsers.add(msg.chat.id);
+    setTimeout(() => recentStartUsers.delete(msg.chat.id), 2000);
+
     // Якщо користувач повернувся за спеціальним посиланням
     if (msg.text && msg.text.includes("retreat_registered")) {
         // Відправляємо тільки повідомлення про успішну реєстрацію, не показуємо welcome message
@@ -83,7 +92,7 @@ bot.onText(/\/start(?:\s+(retreat_registered|\?donation))?/, (msg, match) => {
         // Не показуємо welcome message, просто виходимо
         return;
     }
-    if (msg.text && msg.text.includes("?donation")) {
+    if (msg.text && msg.text.includes("donation")) {
         bot.sendPhoto(
             msg.chat.id,
             "./public/thanks.jpeg",
@@ -130,7 +139,6 @@ bot.onText(/\/start(?:\s+(retreat_registered|\?donation))?/, (msg, match) => {
             }
         );
     }, 3000);
-    console.log(msg.chat);
 });
 // Хендлер для команды /charity (служіння на ретриті)
 bot.onText(/\/charity/, (msg) => {
