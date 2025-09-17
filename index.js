@@ -379,8 +379,7 @@ bot.on("message", (msg) => {
             .then((sentMessage) => {
                 // Проверяем, есть ли информация о forward_from
                 if (
-                    !sentMessage.forward_from &&
-                    !sentMessage.forward_origin?.sender_user
+                    !sentMessage.forward_from 
                 ) {
                     // Сообщение не содержит forward_from — пользователь запретил пересылку своих сообщений
                     bot.sendMessage(
